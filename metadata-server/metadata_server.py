@@ -15,6 +15,9 @@ def main():
     STORAGE_NODE_SIGN_IN_REQ = CONSTS['operation-codes']['STORAGE_NODE_SIGN_IN_REQ']
     STORAGE_NODE_SIGN_OUT_REQ = CONSTS['operation-codes']['STORAGE_NODE_SIGN_OUT_REQ']
     LOCATION_TO_STORE_REQ = CONSTS['operation-codes']['LOCATION_TO_STORE_REQ']
+    LIST_FILES_REQ = CONSTS['operation-codes']['LIST_FILES_REQ']
+    UPDATE_NODE_FILE_LIST_REQ = CONSTS['operation-codes']['UPDATE_NODE_FILE_LIST_REQ']
+    LOCATION_TO_RETRIEVE_REQ = CONSTS['operation-codes']['LOCATION_TO_RETRIEVE_REQ']
 
     storage_nodes = {}
 
@@ -104,6 +107,61 @@ def main():
             
             sock.send(pickle.dumps(location_to_store_res))
 
+        elif operation_req["code"] == UPDATE_NODE_FILE_LIST_REQ:
+            update_node_file_list_req = operation_req
+
+            storage_nodes[update_node_file_list_req["ipv4"]]["file-list"] = update_node_file_list_req["file-list"]
+
+            print(f"Received request from {update_node_file_list_req['ipv4']} to update file list", flush=True)
+
+            UPDATE_NODE_FILE_LIST_RES = CONSTS['operation-codes']['UPDATE_NODE_FILE_LIST_RES']
+
+            update_node_file_list_res = {
+                "code": UPDATE_NODE_FILE_LIST_RES,
+                "status": "OK"
+            }
+            sock.send(pickle.dumps(update_node_file_list_res))
+
+        elif operation_req["code"] == LIST_FILES_REQ:
+            list_files_req = operation_req
+
+            list_files_res = {
+                "code": LIST_FILES_REQ,
+                "status": "OK",
+                "files": set()
+            }
+
+            for ipv4, storage_node in storage_nodes.items():
+                if storage_node["status"] == "ON":
+                    for file in storage_node["file-list"]:
+                        list_files_res["files"].add(file)
+            
+            sock.send(pickle.dumps(list_files_res))
+
+        elif operation_req["code"] == LOCATION_TO_RETRIEVE_REQ:
+            location_to_retrieve_req = operation_req
+
+            file_name = location_to_retrieve_req["file-name"]
+            storage_node_ipv4 = None
+
+            for ipv4, storage_node in storage_nodes.items():
+                if storage_node["status"] == "ON" and file_name in storage_node["file-list"]:
+                    storage_node_ipv4 = ipv4
+                    break
+
+            if storage_node_ipv4:
+                location_to_retrieve_res = {
+                    "code": LOCATION_TO_RETRIEVE_REQ,
+                    "status": "OK",
+                    "ipv4": storage_node_ipv4
+                }
+            else:
+                location_to_retrieve_res = {
+                    "code": LOCATION_TO_RETRIEVE_REQ,
+                    "status": "FILE NOT FOUND",
+                }
+
+            sock.send(pickle.dumps(location_to_retrieve_res))
 
         else:
             operation_res ={

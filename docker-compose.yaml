@@ -17,6 +17,8 @@ services:
     build:
       context: ./storage-node
       dockerfile: Dockerfile
+    depends_on:
+      - metadata-server
     volumes:
       - ./storage-node:/app
       - ./consts.json:/app/consts.json
@@ -28,6 +30,8 @@ services:
     build:
       context: ./storage-node
       dockerfile: Dockerfile
+    depends_on:
+      - metadata-server
     volumes:
       - ./storage-node:/app
       - ./consts.json:/app/consts.json
@@ -39,6 +43,8 @@ services:
     build:
       context: ./storage-node
       dockerfile: Dockerfile
+    depends_on:
+      - metadata-server
     volumes:
       - ./storage-node:/app
       - ./consts.json:/app/consts.json

@@ -8,13 +8,17 @@ CONSTS_FILE_PATH = "../consts.json"
 COMMANDS = {
     "UPLOAD": "UPLOAD",
     "HELP": "HELP",
-    "EXIT": "EXIT"
+    "EXIT": "EXIT",
+    "LIST_FILES": "LIST_FILES",
+    "DOWNLOAD": "DOWNLOAD"
 }
 
 REGEXES = {
     "UPLOAD": r"^upload\s+((/?[a-zA-Z0-9]+)+(\.[a-zA-Z0-9]+)?)\s+(([a-zA-Z0-9]+)+(\.[a-zA-Z0-9]+)?)$",
+    "DOWNLOAD": r"^download\s+(([a-zA-Z0-9]+)+(\.[a-zA-Z0-9]+)?)\s+((/?[a-zA-Z0-9]+)+(\.[a-zA-Z0-9]+)?)$",
     "HELP": r"^help$",
-    "EXIT": r"^exit$"
+    "EXIT": r"^exit$",
+    "LIST_FILES": r"^ls$"
 }
 
 def valid_command(command_str, command_type):
@@ -22,6 +26,13 @@ def valid_command(command_str, command_type):
 
 def parse_command(command_str, command_type):
     if command_type == COMMANDS["UPLOAD"]:
+        match = re.search(REGEXES[command_type], command_str)
+
+        file_name_origin = match.group(1)
+        file_name_dest = match.group(4)
+
+        return (command_type, file_name_origin, file_name_dest)
+    elif command_type == COMMANDS["DOWNLOAD"]:
         match = re.search(REGEXES[command_type], command_str)
 
         file_name_origin = match.group(1)
@@ -76,8 +87,6 @@ def main():
             sn_ipv4 = location_to_store_res["ipv4"] # Storage Node IPv4
             sn_port = CONSTS['storage-nodes']['port']   # Storage Node Port
 
-            print(f"Found a place to store the file: {sn_ipv4}:{sn_port}")
-
             sn_sock = context.socket(zmq.REQ)   # Storage Node Socket
             sn_sock.connect(f"tcp://{sn_ipv4}:{sn_port}")
 
@@ -91,6 +100,67 @@ def main():
 
             sn_sock.send(pickle.dumps(upload_file_req))
 
+        elif valid_command(command_str, COMMANDS["LIST_FILES"]):
+            LIST_FILES_REQ = CONSTS['operation-codes']['LIST_FILES_REQ']
+
+            list_files_req = {
+                "code": LIST_FILES_REQ
+            }
+
+            ms_sock.send(pickle.dumps(list_files_req))
+
+            list_files_res = pickle.loads(ms_sock.recv())
+
+            if list_files_res["status"] != "OK":
+                print("Could not list files")
+                continue
+
+            for file_name in list_files_res["files"]:
+                print(f"{file_name}")
+
+        elif valid_command(command_str, COMMANDS["DOWNLOAD"]):
+            _, file_name_origin, file_name_dest = parse_command(command_str, COMMANDS["DOWNLOAD"])
+
+            print(f"Downloading {file_name_origin} as {file_name_dest}")
+
+            LOCATION_TO_RETRIEVE_REQ = CONSTS['operation-codes']['LOCATION_TO_RETRIEVE_REQ']
+
+            location_to_retrieve_req = {
+                "code": LOCATION_TO_RETRIEVE_REQ,
+                "file-name": file_name_origin
+            }
+
+            ms_sock.send(pickle.dumps(location_to_retrieve_req))
+
+            location_to_retrieve_res = pickle.loads(ms_sock.recv())
+
+            if location_to_retrieve_res["status"] != "OK":
+                print("Could not find a place to retrieve the file")
+                continue
+
+            sn_ipv4 = location_to_retrieve_res["ipv4"] # Storage Node IPv4
+            sn_port = CONSTS['storage-nodes']['port']   # Storage Node Port
+
+            sn_sock = context.socket(zmq.REQ)   # Storage Node Socket
+            sn_sock.connect(f"tcp://{sn_ipv4}:{sn_port}")
+            
+            DOWNLOAD_FILE_REQ = CONSTS['operation-codes']['DOWNLOAD_FILE_REQ']
+
+            download_file_req = {
+                "code": DOWNLOAD_FILE_REQ,
+                "file-name": file_name_origin
+            }
+
+            sn_sock.send(pickle.dumps(download_file_req))
+
+            download_file_res = pickle.loads(sn_sock.recv())
+
+            if download_file_res["status"] != "OK":
+                print("Could not download file")
+                continue
+
+            with open(file_name_dest, "wb") as file:
+                file.write(download_file_res["file-content"])
 
         else:
             print("Invalid command")
