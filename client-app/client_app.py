@@ -79,6 +79,8 @@ def main():
             print("Commands:")
             print("upload <file_path_origin> <file_name_dest>")
             print("download <file_name_origin> <file_path_dest>")
+            print("remove <file_name_origin>")
+            print("cat <file_name_origin>")
             print("ls")
             print("exit")
 
