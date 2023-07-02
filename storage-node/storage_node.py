@@ -138,6 +138,9 @@ def main():
 
     UPLOAD_FILE_REQ = CONSTS['operation-codes']['UPLOAD_FILE_REQ']
     DOWNLOAD_FILE_REQ = CONSTS['operation-codes']['DOWNLOAD_FILE_REQ']
+    HEARTBEAT_REQ = CONSTS['operation-codes']['HEARTBEAT_REQ']
+    REMOVE_FILE_REQ = CONSTS['operation-codes']['REMOVE_FILE_REQ']
+    CAT_FILE_REQ = CONSTS['operation-codes']['CAT_FILE_REQ']
 
     sign_in_metadata_server()
 
@@ -156,7 +159,6 @@ def main():
         == Storage Node - Received Request ==
         Code: {operation_req['code']}
         Source: {source}
-        File: {operation_req['file-name']}
         """, flush=True)
 
         if operation_req['code'] == UPLOAD_FILE_REQ:
@@ -183,6 +185,58 @@ def main():
             sock.send(pickle.dumps(operation_res))
 
         elif operation_req['code'] == DOWNLOAD_FILE_REQ:
+            file_name = operation_req['file-name']
+            file_path = os.path.join(DB_DIR, file_name)
+
+            if not os.path.exists(file_path):
+                operation_res = {
+                    "code": operation_req['code'],
+                    "status": "FILE NOT FOUND"
+                }
+                sock.send(pickle.dumps(operation_res))
+                continue
+
+            with open(file_path, "rb") as file:
+                file_content = file.read()
+
+            operation_res = {
+                "code": operation_req['code'],
+                "status": "OK",
+                "file-content": file_content
+            }
+            sock.send(pickle.dumps(operation_res))
+
+        elif operation_req['code'] == HEARTBEAT_REQ:
+            operation_res = {
+                "code": operation_req['code'],
+                "file-list": os.listdir(DB_DIR),
+                "status": "OK"
+            }
+            sock.send(pickle.dumps(operation_res))
+
+        elif operation_req['code'] == REMOVE_FILE_REQ:
+            file_name = operation_req['file-name']
+            file_path = os.path.join(DB_DIR, file_name)
+
+            if not os.path.exists(file_path):
+                operation_res = {
+                    "code": operation_req['code'],
+                    "status": "FILE NOT FOUND"
+                }
+                sock.send(pickle.dumps(operation_res))
+                continue
+
+            os.remove(file_path)
+
+            update_metadata_server()
+
+            operation_res = {
+                "code": operation_req['code'],
+                "status": "OK"
+            }
+            sock.send(pickle.dumps(operation_res))
+
+        elif operation_req['code'] == CAT_FILE_REQ:
             file_name = operation_req['file-name']
             file_path = os.path.join(DB_DIR, file_name)
 

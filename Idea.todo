@@ -19,7 +19,11 @@ Client Application:
 - Pode listar os arquivos, fazer o download ou upload de arquivos
 
 
-Metadata Protocol
+Request operation
 {
     "operation": [STORAGE_NODE_REGISTRATION, STORAGE_NODE_REMOVAL, STORAGE_NODE_CONSULTAION]
+}
+
+{
+
 }

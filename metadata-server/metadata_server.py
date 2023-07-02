@@ -1,8 +1,43 @@
 import zmq
 import pickle
 import json
+import multiprocessing
 
 CONSTS_FILE_PATH = "./consts.json"
+
+def check_storage_node(ipv4, storage_node):
+    global context, CONSTS
+
+    HEARTBEAT_REQ = CONSTS['operation-codes']['HEARTBEAT_REQ']
+
+    sn_port = CONSTS['storage-nodes']['port']
+
+    sock = context.socket(zmq.REQ)
+    sock.connect(f"tcp://{ipv4}:{sn_port}")
+
+    location_to_retrieve_req = {
+        "code": HEARTBEAT_REQ,
+        "ipv4": "Metadata Server"
+    }
+
+    sock.send(pickle.dumps(location_to_retrieve_req))
+
+    try:
+        location_to_retrieve_res = pickle.loads(sock.recv())
+    except zmq.error.Again:
+        print(f"Storage node {ipv4} is offline", flush=True)
+        storage_node['status'] = 'OFF'
+        storage_node['file-list'] = []
+        return
+
+    if location_to_retrieve_res['status'] == 'OK':
+        print(f"Storage node {ipv4} is online", flush=True)
+        storage_node['status'] = 'ON'
+        storage_node['file-list'] = location_to_retrieve_res['file-list']
+    else:
+        print(f"Storage node {ipv4} is offline", flush=True)
+        storage_node['status'] = 'OFF'
+        storage_node['file-list'] = []
 
 def main():
     global context, CONSTS
@@ -25,12 +60,19 @@ def main():
 
     sock = context.socket(zmq.REP)
     sock.bind(f"tcp://{MS_IPV4}:{MS_PORT}")
+    sock.setsockopt(zmq.RCVTIMEO, 5000)
 
     print('Server started...', flush=True)
 
     while True:
         
-        operation_req = pickle.loads(sock.recv())
+        try:
+            operation_req = pickle.loads(sock.recv())
+        except zmq.error.Again:
+            # Execute a heartbeat check on all storage nodes
+            for ipv4, storage_node in storage_nodes.items():
+                check_storage_node(ipv4, storage_node)
+            continue
 
         source = operation_req['ipv4'] if 'ipv4' in operation_req else 'Client App'
         print(f"""
