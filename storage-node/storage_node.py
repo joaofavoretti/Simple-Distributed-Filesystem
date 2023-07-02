@@ -18,6 +18,10 @@ ERROR_CODE = {
 }
 
 def get_main_interface_ip():
+    """
+    Simple function to retrieve the "main" interface of a machine.
+    This is used to index the Storage Nodes in the Metadata Server
+    """
     interfaces = netifaces.interfaces()
     for interface in interfaces:
         if interface == "lo":
@@ -27,6 +31,10 @@ def get_main_interface_ip():
             return addrs[netifaces.AF_INET][0]["addr"]
 
 def sign_in_metadata_server():
+    """
+    Function to contain the sequence required to sign in in a metadata server.
+    Used every time the Storage Node starts.
+    """
     global context, CONSTS
 
     MS_IPV4 = CONSTS['metadata-server']['ipv4']
@@ -59,6 +67,10 @@ def sign_in_metadata_server():
     ms_sock.close()
 
 def sign_out_metadata_server():
+    """
+    Function to contain the sequence required to sign out in a metadata server.
+    Used every time the Storage Node stops.
+    """
     global context, CONSTS
 
     MS_IPV4 = CONSTS['metadata-server']['ipv4']
@@ -90,6 +102,10 @@ def sign_out_metadata_server():
     ms_sock.close()
 
 def update_metadata_server():
+    """
+    Function to contain the sequence required to update the metadata server.
+    Used every time the Storage Node is required to store a new file or remove an existing one.
+    """
     global context, CONSTS
 
     MS_IPV4 = CONSTS['metadata-server']['ipv4']
@@ -142,6 +158,7 @@ def main():
     REMOVE_FILE_REQ = CONSTS['operation-codes']['REMOVE_FILE_REQ']
     CAT_FILE_REQ = CONSTS['operation-codes']['CAT_FILE_REQ']
 
+    # Register itself in the Metadata Server
     sign_in_metadata_server()
 
     SN_IPV4 = get_main_interface_ip()
@@ -154,6 +171,7 @@ def main():
 
         operation_req = pickle.loads(sock.recv())
         
+        # Loggin about the received request
         source = operation_req['ipv4'] if 'ipv4' in operation_req else 'Client App'
         print(f"""
         == Storage Node - Received Request ==
@@ -161,6 +179,7 @@ def main():
         Source: {source}
         """, flush=True)
 
+        # Handler of a upload command
         if operation_req['code'] == UPLOAD_FILE_REQ:
             file_name = operation_req['file-name']
             file_path = os.path.join(DB_DIR, file_name)
@@ -184,6 +203,7 @@ def main():
             }
             sock.send(pickle.dumps(operation_res))
 
+        # Handler of a download command
         elif operation_req['code'] == DOWNLOAD_FILE_REQ:
             file_name = operation_req['file-name']
             file_path = os.path.join(DB_DIR, file_name)
@@ -206,6 +226,7 @@ def main():
             }
             sock.send(pickle.dumps(operation_res))
 
+        # Handler of a simple heartbeat check from the Metadata Server
         elif operation_req['code'] == HEARTBEAT_REQ:
             operation_res = {
                 "code": operation_req['code'],
@@ -214,6 +235,7 @@ def main():
             }
             sock.send(pickle.dumps(operation_res))
 
+        # Handler of a remove command
         elif operation_req['code'] == REMOVE_FILE_REQ:
             file_name = operation_req['file-name']
             file_path = os.path.join(DB_DIR, file_name)
@@ -236,6 +258,7 @@ def main():
             }
             sock.send(pickle.dumps(operation_res))
 
+        # Handler of a cat command. Sends the content of the file to the client
         elif operation_req['code'] == CAT_FILE_REQ:
             file_name = operation_req['file-name']
             file_path = os.path.join(DB_DIR, file_name)
@@ -258,6 +281,7 @@ def main():
             }
             sock.send(pickle.dumps(operation_res))
 
+        # Handler of a unknown command
         else:
             operation_res = {
                 "code": operation_req['code'],
@@ -267,9 +291,6 @@ def main():
 
 
     sign_out_metadata_server()
-
-
-    
 
 if __name__ == "__main__":
     main()

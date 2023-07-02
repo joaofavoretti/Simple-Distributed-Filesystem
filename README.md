@@ -6,7 +6,7 @@ It has three components:
 
 ## Metadata Server
 
-This application is used to keep track of an index of where each file is on the filesystem, and to check which Storage Node is available to be connected to.
+This application is used to keep track of an index of where each file is on the filesystem, and to check which Storage Node is available to be connected to. When it is available, it uses the spare time to check if all the Storage Nodes are still online 
 
 ## Storage Node
 
