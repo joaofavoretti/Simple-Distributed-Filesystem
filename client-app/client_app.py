@@ -17,8 +17,8 @@ COMMANDS = {
 }
 
 REGEXES = {
-    "UPLOAD": r"^upload\s+((/?[a-zA-Z0-9\-_]+)+(\.[a-zA-Z0-9]+)?)\s+(([a-zA-Z0-9\-_]+)+(\.[a-zA-Z0-9]+)?)$",
-    "DOWNLOAD": r"^download\s+(([a-zA-Z0-9\-_]+)+(\.[a-zA-Z0-9]+)?)\s+((/?[a-zA-Z0-9\-_]+)+(\.[a-zA-Z0-9]+)?)$",
+    "UPLOAD": r"^upload\s+(\.?(/?[a-zA-Z0-9\-_]+)+(\.[a-zA-Z0-9]+)?)\s+(([a-zA-Z0-9\-_]+)+(\.[a-zA-Z0-9]+)?)$",
+    "DOWNLOAD": r"^download\s+(([a-zA-Z0-9\-_]+)+(\.[a-zA-Z0-9]+)?)\s+(\.?(/?[a-zA-Z0-9\-_]+)+(\.[a-zA-Z0-9]+)?)$",
     "REMOVE": r"^remove\s+(([a-zA-Z0-9\-_]+)+(\.[a-zA-Z0-9]+)?)$",
     "CAT": r"^cat\s+(([a-zA-Z0-9\-_]+)+(\.[a-zA-Z0-9]+)?)$",
     "HELP": r"^help$",

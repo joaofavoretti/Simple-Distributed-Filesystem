@@ -26,6 +26,7 @@ services:
       server-network:
         ipv4_address: "11.56.1.41"
     hostname: "storage-node-1"
+
   storage-node-2:
     build:
       context: ./storage-node
@@ -39,6 +40,7 @@ services:
       server-network:
         ipv4_address: "11.56.1.42"
     hostname: "storage-node-2"
+  
   storage-node-3:
     build:
       context: ./storage-node
